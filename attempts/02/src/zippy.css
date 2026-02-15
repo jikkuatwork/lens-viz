@@ -18,9 +18,8 @@
   --color-text-faint: var(--z-text-faint);
   --color-on-accent: var(--z-on-accent);
 
-  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
-    'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'SF Mono', 'Fira Code', Menlo, monospace;
+  --font-sans: 'Sora', 'Avenir Next', 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', 'Fira Code', Menlo, monospace;
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -111,10 +110,25 @@ a:active,
   }
 }
 
+@keyframes z-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .z-fade-in {
   animation: z-fade-in 0.2s ease-out;
 }
 
 .z-slide-up {
   animation: z-slide-up 0.28s ease-out;
+}
+
+.z-scale-in {
+  animation: z-scale-in 0.2s ease-out;
 }

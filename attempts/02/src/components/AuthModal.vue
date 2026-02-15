@@ -13,6 +13,10 @@ async function onGoogle() {
 
   try {
     await auth.signInWithGoogle()
+    if (auth.error.value) {
+      error.value = auth.error.value
+      return
+    }
     emit('close')
   } catch (e) {
     error.value = e?.message || 'Sign in failed'
@@ -36,8 +40,8 @@ function onBackdrop(event) {
 
         <div class="head">
           <img src="/assets/logo.svg" alt="Lens" class="logo" />
-          <h2>Welcome to Lens</h2>
-          <p>Sign in to present the pipeline with account context.</p>
+          <h2>Enter Deck Mode</h2>
+          <p>Use account context or run with local presentation auth.</p>
         </div>
 
         <div v-if="error" class="error">{{ error }}</div>
@@ -46,9 +50,14 @@ function onBackdrop(event) {
           <span>{{ loading ? 'Signing in...' : 'Continue with Google' }}</span>
         </button>
 
-        <div class="divider"><span>or</span></div>
+        <div v-if="auth.canUseMockAuth.value" class="divider"><span>or</span></div>
 
-        <button class="guest" @click="auth.signInDemo(); emit('close')">Continue as Guest</button>
+        <button
+          v-if="auth.canUseMockAuth.value"
+          class="guest"
+          @click="auth.signInDemo(); emit('close')">
+          Continue in Presentation Mode
+        </button>
       </div>
     </div>
   </Teleport>
@@ -67,12 +76,12 @@ function onBackdrop(event) {
 }
 
 .modal {
-  width: min(420px, 100%);
-  border-radius: 18px;
-  background: var(--z-surface-alt);
+  width: min(460px, 100%);
+  border-radius: 22px;
+  background: linear-gradient(150deg, color-mix(in srgb, var(--z-surface-alt) 86%, white 14%), color-mix(in srgb, var(--z-surface) 70%, white 30%));
   border: 1px solid color-mix(in srgb, var(--z-border) 55%, transparent);
   box-shadow: var(--shadow-lg);
-  padding: 18px;
+  padding: 22px;
   position: relative;
 }
 
@@ -103,13 +112,14 @@ function onBackdrop(event) {
 
 .head h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
+  letter-spacing: -0.01em;
 }
 
 .head p {
   margin: 7px 0 0;
   color: var(--z-text-sub);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .error {
@@ -125,22 +135,27 @@ function onBackdrop(event) {
 .google,
 .guest {
   width: 100%;
-  border-radius: 12px;
-  padding: 10px 12px;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: 999px;
+  padding: 11px 14px;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
 }
 
 .google {
-  border: 1px solid color-mix(in srgb, var(--z-border) 60%, transparent);
-  background: color-mix(in srgb, var(--z-surface) 85%, white 15%);
-  color: var(--z-text);
+  border: 1px solid color-mix(in srgb, var(--z-accent-500) 45%, transparent);
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--z-accent-500) 84%, transparent),
+    color-mix(in srgb, #45c1ff 68%, var(--z-accent-500) 32%)
+  );
+  color: var(--z-on-accent);
 }
 
 .guest {
-  border: 0;
-  background: transparent;
-  color: color-mix(in srgb, var(--z-accent-700) 65%, var(--z-text) 35%);
+  border: 1px solid color-mix(in srgb, var(--z-border) 55%, transparent);
+  background: color-mix(in srgb, var(--z-surface-alt) 82%, white 18%);
+  color: var(--z-text-sub);
 }
 
 .divider {
