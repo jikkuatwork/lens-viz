@@ -13,16 +13,14 @@
           stroke-dasharray="4 6"
           opacity="0.3"
         />
-        <!-- Branch lines -->
-        <line
+        <!-- Branch curves (bezier noodles) -->
+        <path
           v-for="(node, i) in nodes"
           :key="'branch-' + i"
-          :x1="svgCenter"
-          :y1="svgCenter"
-          :x2="node.svgX"
-          :y2="node.svgY"
+          :d="node.pathD"
           class="branch-line"
           :style="{ '--i': i }"
+          fill="none"
           stroke="var(--accent)"
           stroke-width="1.5"
           stroke-linecap="round"
@@ -92,10 +90,25 @@ const nodes = computed(() => {
     const angle = startAngle + (i * 2 * Math.PI) / count
     const svgX = svgCenter + branchRadius * Math.cos(angle)
     const svgY = svgCenter + branchRadius * Math.sin(angle)
+
+    // Bezier noodle: depart straight from center, gentle curve near the node
+    // CP1: along the direct radial line (straight departure)
+    const cp1x = svgCenter + branchRadius * 0.45 * Math.cos(angle)
+    const cp1y = svgCenter + branchRadius * 0.45 * Math.sin(angle)
+    // CP2: near node, offset tangentially (consistent clockwise direction)
+    const perpX = -Math.sin(angle)
+    const perpY = Math.cos(angle)
+    const curveAmount = 30
+    const cp2x = svgX - branchRadius * 0.2 * Math.cos(angle) + perpX * curveAmount
+    const cp2y = svgY - branchRadius * 0.2 * Math.sin(angle) + perpY * curveAmount
+
+    const pathD = `M ${svgCenter} ${svgCenter} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${svgX} ${svgY}`
+
     return {
       ...q,
       svgX,
       svgY,
+      pathD,
       pctX: (svgX / svgSize) * 100,
       pctY: (svgY / svgSize) * 100,
     }
@@ -128,8 +141,8 @@ const nodes = computed(() => {
 }
 
 .branch-line {
-  stroke-dasharray: 180;
-  stroke-dashoffset: 180;
+  stroke-dasharray: 250;
+  stroke-dashoffset: 250;
 }
 
 .active .branch-line {
