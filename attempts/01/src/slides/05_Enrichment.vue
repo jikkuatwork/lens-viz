@@ -56,20 +56,6 @@
       </div>
     </div>
 
-    <!-- AI Agent Indicator -->
-    <div class="agent-indicator" v-if="agentActive">
-      <div class="agent-pulse"></div>
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <circle cx="8" cy="8" r="6" stroke="var(--purple)" stroke-width="1.2"/>
-        <path d="M6 8l1.5 1.5L10 6.5" stroke="var(--purple)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span class="agent-text">Enrichment Agent Processing</span>
-      <div class="agent-dots">
-        <span class="dot d1">.</span>
-        <span class="dot d2">.</span>
-        <span class="dot d3">.</span>
-      </div>
-    </div>
 
   </div>
 </template>
@@ -107,7 +93,6 @@ const tagSets = [
   ['Intelligence', 'Risk', 'Series C'],
 ]
 
-const agentActive = ref(false)
 const enrichedCount = ref(0)
 
 let timers = []
@@ -162,7 +147,6 @@ function enrichStartup(startup, index) {
 
 function runAnimation() {
   clearTimers()
-  agentActive.value = false
   enrichedCount.value = 0
   startups.forEach(s => {
     s.enriching = false
@@ -172,8 +156,6 @@ function runAnimation() {
     s.layers = []
     s.tags = []
   })
-
-  timers.push(setTimeout(() => { agentActive.value = true }, 200))
 
   // Enrich each startup sequentially with overlap
   startups.forEach((startup, i) => {
@@ -386,47 +368,5 @@ onUnmounted(clearTimers)
   letter-spacing: 0.2px;
 }
 
-/* ── Agent Indicator ── */
-.agent-indicator {
-  position: absolute;
-  top: 12%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: var(--bg-glass);
-  border: 1px solid var(--purple-dim);
-  border-radius: var(--radius-full);
-  backdrop-filter: blur(20px);
-  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.agent-pulse {
-  position: absolute;
-  inset: -1px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--purple);
-  animation: ripple 2s ease infinite;
-}
-
-.agent-text {
-  font-size: 11px;
-  color: var(--purple);
-  font-weight: 500;
-  letter-spacing: 0.2px;
-}
-
-.agent-dots {
-  display: flex;
-  gap: 0;
-}
-
-.dot {
-  font-size: 14px;
-  color: var(--purple);
-  animation: pulse 1s ease infinite;
-}
-.d2 { animation-delay: 0.2s; }
-.d3 { animation-delay: 0.4s; }
 
 </style>
