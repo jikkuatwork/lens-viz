@@ -13,10 +13,10 @@
       <!-- JSON-like Content -->
       <div class="json-content" ref="jsonRef">
         <div
-          v-for="(line, i) in visibleLines"
+          v-for="(line, i) in jsonLines"
           :key="i"
           class="json-line"
-          :style="{ animationDelay: `${i * 0.04}s` }"
+          :class="{ revealed: i < revealCount }"
         >
           <span class="line-number">{{ line.num }}</span>
           <span
@@ -62,7 +62,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onUnmounted } from 'vue'
+import { ref, reactive, watch, onUnmounted } from 'vue'
 
 const props = defineProps({
   active: Boolean,
@@ -111,8 +111,6 @@ const schemaStats = reactive([
 
 const revealCount = ref(0)
 const showMetrics = ref(false)
-
-const visibleLines = computed(() => jsonLines.slice(0, revealCount.value))
 
 let timers = []
 
@@ -219,10 +217,15 @@ onUnmounted(clearTimers)
   display: flex;
   align-items: baseline;
   padding: 1px 14px;
-  animation: fadeIn 0.2s ease both;
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.7;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.json-line.revealed {
+  opacity: 1;
 }
 
 .line-number {
