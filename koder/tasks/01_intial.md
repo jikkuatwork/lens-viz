@@ -45,3 +45,9 @@
 - Understand beyond pinning on the reality of the true stages of the actual
   pipeline; use it as a guide but lean heavily of the above narrative to build
   the visualisation
+
+## Note
+
+- implement the system to attempts/xx/
+- if there are multiple ones, specifially ask if the user wants to work on a
+  specific or start a new attempt
