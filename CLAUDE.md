@@ -20,6 +20,7 @@ Animated pipeline visualization for presentations. Fazt app (Vue 3 + Vite).
 - Build: `vite build && cp -r api dist/api`
 - All fetch calls to auth endpoints must include `credentials: 'include'`
 - `POST /auth/logout` with JSON body `'{}'`, never GET
+- **ALWAYS deploy after every change**: `fazt @local app deploy ./attempts/01 --name lens-pipeline-viz --spa`
 
 ## Current tasks
 

@@ -58,7 +58,7 @@ defineEmits(['select'])
 
 .tracker-inner {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   gap: 0;
   padding: 12px 0;
@@ -73,6 +73,7 @@ defineEmits(['select'])
   flex-shrink: 0;
   overflow: hidden;
   border-radius: 1px;
+  margin-top: 17px;
 }
 
 .connector-fill {
