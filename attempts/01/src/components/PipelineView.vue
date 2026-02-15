@@ -4,32 +4,17 @@
     <header class="pipeline-header">
       <div class="header-left">
         <div class="logo">
-          <svg class="logo-svg" width="24" height="24" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="60" cy="60" r="56" stroke="var(--accent)" stroke-width="2.5" opacity="0.3"/>
-            <circle cx="60" cy="60" r="36" stroke="var(--accent)" stroke-width="2" opacity="0.5"/>
-            <circle cx="60" cy="60" r="16" fill="var(--accent)" opacity="0.8"/>
-            <line x1="60" y1="4" x2="60" y2="28" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
-            <line x1="60" y1="92" x2="60" y2="116" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
-            <line x1="4" y1="60" x2="28" y2="60" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
-            <line x1="92" y1="60" x2="116" y2="60" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
-          </svg>
+          <img src="/assets/logo.svg" alt="Lens" class="logo-img" />
           <span class="logo-text">Lens</span>
         </div>
       </div>
       <div class="header-right">
         <div class="nav-hint">
-          <span class="hint-key">Space</span> play/pause
-          <span class="hint-sep">&middot;</span>
           <span class="hint-key">&larr;</span> <span class="hint-key">&rarr;</span> navigate
         </div>
         <button class="control-btn" @click="handleReset" title="Reset">
           <RotateCcw :size="15" stroke-width="1.5" />
         </button>
-        <button class="control-btn play-btn" :class="{ playing }" @click="handleTogglePlay" :title="playing ? 'Pause' : 'Play'">
-          <Play v-if="!playing" :size="15" stroke-width="1.5" />
-          <Pause v-else :size="15" stroke-width="1.5" />
-        </button>
-
         <!-- User Avatar Dropdown -->
         <div class="user-menu" ref="userMenuRef">
           <button class="avatar-btn" @click="toggleUserMenu" title="Account">
@@ -102,17 +87,18 @@
 </template>
 
 <script setup>
-import { ref, inject, computed, onMounted, onUnmounted, shallowRef, markRaw } from 'vue'
-import { RotateCcw, Play, Pause, Sun, Moon, LogOut } from 'lucide-vue-next'
+import { ref, inject, computed, watch, onMounted, onUnmounted, shallowRef, markRaw } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { RotateCcw, Sun, Moon, LogOut } from 'lucide-vue-next'
 import ProgressTracker from './ProgressTracker.vue'
 import FooterStats from './FooterStats.vue'
-import DataIngestion from './stages/DataIngestion.vue'
-import QueryExpansion from './stages/QueryExpansion.vue'
-import DeepResearch from './stages/DeepResearch.vue'
-import StartupExtraction from './stages/StartupExtraction.vue'
-import Enrichment from './stages/Enrichment.vue'
-import StructuredOutput from './stages/StructuredOutput.vue'
-import VectorStorage from './stages/VectorStorage.vue'
+import Slide01 from '../slides/01_DataIngestion.vue'
+import Slide02 from '../slides/02_QueryExpansion.vue'
+import Slide03 from '../slides/03_DeepResearch.vue'
+import Slide04 from '../slides/04_StartupExtraction.vue'
+import Slide05 from '../slides/05_Enrichment.vue'
+import Slide06 from '../slides/06_StructuredOutput.vue'
+import Slide07 from '../slides/07_VectorStorage.vue'
 
 const lightMode = inject('lightMode')
 const toggleTheme = inject('toggleTheme')
@@ -152,17 +138,23 @@ const stages = [
 ]
 
 const stageComponents = [
-  markRaw(DataIngestion),
-  markRaw(QueryExpansion),
-  markRaw(DeepResearch),
-  markRaw(StartupExtraction),
-  markRaw(Enrichment),
-  markRaw(StructuredOutput),
-  markRaw(VectorStorage),
+  markRaw(Slide01),
+  markRaw(Slide02),
+  markRaw(Slide03),
+  markRaw(Slide04),
+  markRaw(Slide05),
+  markRaw(Slide06),
+  markRaw(Slide07),
 ]
 
+const router = useRouter()
+const route = useRoute()
+
 const pipelineRef = ref(null)
-const currentStage = ref(0)
+const currentStage = computed(() => {
+  const num = parseInt(route.params.num, 10)
+  return (num >= 1 && num <= stages.length) ? num - 1 : 0
+})
 const completedStages = ref(new Set())
 const playing = ref(false)
 const stageActive = ref(false)
@@ -205,6 +197,14 @@ const stageDurations = [7000, 7000, 8000, 7000, 7000, 7000, 6000]
 let autoTimer = null
 let activateTimer = null
 
+function slideNum(index) {
+  return String(index + 1).padStart(2, '0')
+}
+
+function navigateTo(index) {
+  router.push(`/slide/${slideNum(index)}`)
+}
+
 function activateStage() {
   stageActive.value = false
   clearTimeout(activateTimer)
@@ -217,9 +217,10 @@ function advanceStage() {
   if (currentStage.value < stages.length - 1) {
     completedStages.value.add(currentStage.value)
     transitioning.value = true
-    currentStage.value++
+    const next = currentStage.value + 1
+    navigateTo(next)
     activateStage()
-    track('stage_navigate', { stage: currentStage.value, method: 'autoplay' })
+    track('stage_navigate', { stage: next, method: 'autoplay' })
     setTimeout(() => { transitioning.value = false }, 600)
     scheduleNext()
   } else {
@@ -256,7 +257,7 @@ function handleTogglePlay() {
 function reset() {
   playing.value = false
   clearTimeout(autoTimer)
-  currentStage.value = 0
+  navigateTo(0)
   completedStages.value = new Set()
   stageActive.value = false
   activateStage()
@@ -275,7 +276,7 @@ function goToStage(index) {
     completedStages.value = new Set([...completedStages.value].filter(s => s < index))
   }
   transitioning.value = true
-  currentStage.value = index
+  navigateTo(index)
   activateStage()
   track('stage_navigate', { stage: index, method: 'click' })
   setTimeout(() => { transitioning.value = false }, 600)
@@ -302,10 +303,15 @@ function handleKeydown(e) {
   }
 }
 
+// Re-activate stage animation when route changes
+watch(currentStage, () => {
+  activateStage()
+})
+
 onMounted(() => {
   pipelineRef.value?.focus()
   activateStage()
-  track('stage_view', { stage: 0 })
+  track('stage_view', { stage: currentStage.value })
   document.addEventListener('click', handleClickOutside)
 })
 
@@ -355,7 +361,9 @@ onUnmounted(() => {
   gap: 8px;
 }
 
-.logo-svg {
+.logo-img {
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
 }
 
@@ -388,17 +396,6 @@ onUnmounted(() => {
 }
 
 .control-btn:hover {
-  border-color: var(--border-accent);
-  color: var(--accent);
-  background: var(--accent-subtle);
-}
-
-.play-btn {
-  width: 40px;
-  height: 32px;
-}
-
-.play-btn.playing {
   border-color: var(--border-accent);
   color: var(--accent);
   background: var(--accent-subtle);

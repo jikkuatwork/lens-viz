@@ -29,7 +29,6 @@
             <div class="node-dot"></div>
           </div>
           <span class="node-label">{{ stage.title }}</span>
-          <span class="node-number">{{ String(i + 1).padStart(2, '0') }}</span>
         </button>
       </template>
     </div>
@@ -186,12 +185,13 @@ defineEmits(['select'])
   font-weight: 500;
   color: var(--text-tertiary);
   letter-spacing: 0.3px;
-  white-space: nowrap;
   transition: color 0.3s ease;
-  max-width: 80px;
+  max-width: 90px;
   text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.35;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .node.active .node-label {
@@ -202,19 +202,4 @@ defineEmits(['select'])
   color: var(--text-secondary);
 }
 
-.node-number {
-  position: absolute;
-  top: 5px;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 600;
-  color: transparent;
-  pointer-events: none;
-}
-
-.node.active .node-number,
-.node:hover .node-number {
-  color: var(--text-tertiary);
-  top: -12px;
-}
 </style>

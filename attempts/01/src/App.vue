@@ -15,13 +15,12 @@
     />
 
     <!-- Main app -->
-    <PipelineView v-else />
+    <router-view v-else />
   </div>
 </template>
 
 <script setup>
 import { ref, provide, onMounted } from 'vue'
-import PipelineView from './components/PipelineView.vue'
 import AuthModal from './components/AuthModal.vue'
 import { useAuth } from './composables/useAuth.js'
 import { useAnalytics } from './composables/useAnalytics.js'
