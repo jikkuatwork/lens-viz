@@ -26,31 +26,23 @@
           <span class="query-label">{{ agent.query }}</span>
         </div>
 
-        <!-- Search Animation -->
-        <div class="agent-search" v-if="agent.active && !agent.done">
-          <div class="search-bar">
-            <div class="search-progress" :style="{ width: agent.progress + '%' }"></div>
-          </div>
-          <div class="search-wave">
-            <div v-for="n in 5" :key="n" class="wave-bar" :style="{ animationDelay: `${n * 0.1}s` }"></div>
-          </div>
-        </div>
-
-        <!-- Skeleton results (before agent starts) -->
-        <div class="agent-results-skeleton" v-if="!agent.active && !agent.done">
-          <div class="skeleton-line" v-for="n in 3" :key="n"></div>
-        </div>
-
-        <!-- Results -->
-        <div class="agent-results" v-if="agent.results.length > 0">
+        <!-- Result rows — always rendered, transition from skeleton → populated -->
+        <div class="result-rows">
           <div
-            v-for="(result, j) in agent.results"
+            v-for="(slot, j) in agent.resultData"
             :key="j"
-            class="result-card"
-            :style="{ animationDelay: `${j * 0.15}s` }"
+            class="result-row"
+            :class="{
+              skeleton: !agent.results[j],
+              searching: agent.active && !agent.done && !agent.results[j],
+              populated: !!agent.results[j],
+            }"
           >
-            <div class="result-dot"></div>
-            <span class="result-name">{{ result }}</span>
+            <div class="row-shimmer"></div>
+            <div class="row-content">
+              <div class="result-dot"></div>
+              <span class="result-name">{{ agent.results[j] || '' }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -73,7 +65,7 @@ const agents = reactive([
     query: 'Autonomy & Robotics',
     active: false,
     done: false,
-    progress: 0,
+
     statusText: 'Idle',
     statusClass: 'idle',
     results: [],
@@ -84,7 +76,7 @@ const agents = reactive([
     query: 'Clean Shipping & Emissions',
     active: false,
     done: false,
-    progress: 0,
+
     statusText: 'Idle',
     statusClass: 'idle',
     results: [],
@@ -95,7 +87,7 @@ const agents = reactive([
     query: 'Port & Logistics Intelligence',
     active: false,
     done: false,
-    progress: 0,
+
     statusText: 'Idle',
     statusClass: 'idle',
     results: [],
@@ -106,7 +98,7 @@ const agents = reactive([
     query: 'Offshore Services & Safety',
     active: false,
     done: false,
-    progress: 0,
+
     statusText: 'Idle',
     statusClass: 'idle',
     results: [],
@@ -118,27 +110,8 @@ const agents = reactive([
 let timers = []
 
 function clearTimers() {
-  timers.forEach(t => {
-    if (typeof t === 'number') clearTimeout(t)
-    else if (t?.clear) t.clear()
-  })
+  timers.forEach(t => clearTimeout(t))
   timers = []
-}
-
-function animateProgress(agent, duration, callback) {
-  const start = performance.now()
-  function step(now) {
-    const elapsed = now - start
-    agent.progress = Math.min((elapsed / duration) * 100, 100)
-    if (elapsed < duration) {
-      const id = requestAnimationFrame(step)
-      timers.push({ clear: () => cancelAnimationFrame(id) })
-    } else {
-      callback?.()
-    }
-  }
-  const id = requestAnimationFrame(step)
-  timers.push({ clear: () => cancelAnimationFrame(id) })
 }
 
 function runAnimation() {
@@ -146,37 +119,40 @@ function runAnimation() {
   agents.forEach(a => {
     a.active = false
     a.done = false
-    a.progress = 0
     a.statusText = 'Idle'
     a.statusClass = 'idle'
     a.results = []
   })
 
   agents.forEach((agent, i) => {
+    const agentDelay = 500 + i * 600
+    const searchDuration = 2000 + i * 400
+
+    // Agent starts searching
     timers.push(setTimeout(() => {
       agent.active = true
       agent.statusText = 'Searching...'
       agent.statusClass = 'searching'
+    }, agentDelay))
 
-      animateProgress(agent, 2000 + i * 400, () => {
-        agent.statusText = 'Extracting'
-        agent.statusClass = 'extracting'
+    // Search done → extracting, populate rows one by one
+    timers.push(setTimeout(() => {
+      agent.statusText = 'Extracting'
+      agent.statusClass = 'extracting'
 
-        agent.resultData.forEach((result, j) => {
-          timers.push(setTimeout(() => {
-            agent.results.push(result)
-          }, 200 + j * 200))
-        })
-
+      agent.resultData.forEach((result, j) => {
         timers.push(setTimeout(() => {
-          agent.done = true
-          agent.statusText = 'Complete'
-          agent.statusClass = 'complete'
-        }, 200 + agent.resultData.length * 200 + 100))
+          agent.results.push(result)
+        }, 200 + j * 300))
       })
-    }, 500 + i * 600))
-  })
 
+      timers.push(setTimeout(() => {
+        agent.done = true
+        agent.statusText = 'Complete'
+        agent.statusClass = 'complete'
+      }, 200 + agent.resultData.length * 300 + 100))
+    }, agentDelay + searchDuration))
+  })
 }
 
 watch(() => props.active, (val) => {
@@ -301,73 +277,87 @@ onUnmounted(clearTimers)
   line-height: 1.4;
 }
 
-/* ── Search Animation ── */
-.agent-search {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.search-bar {
-  height: 3px;
-  background: var(--bg-glass);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.search-progress {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--purple));
-  border-radius: 2px;
-  transition: width 0.1s linear;
-}
-
-.search-wave {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  height: 20px;
-}
-
-.wave-bar {
-  width: 3px;
-  height: 4px;
-  background: var(--accent);
-  border-radius: 2px;
-  animation: waveform 0.8s ease-in-out infinite;
-}
-
-/* ── Skeleton Results ── */
-.agent-results-skeleton {
+/* ── Result Rows (skeleton → populated) ── */
+.result-rows {
   display: flex;
   flex-direction: column;
   gap: 6px;
   flex: 1;
 }
 
-.skeleton-line {
-  height: 28px;
-  background: var(--bg-subtle);
+.result-row {
+  position: relative;
+  height: 30px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--bg-subtle);
+  overflow: hidden;
+  background: var(--bg-subtle);
+  border: 1px solid transparent;
+  transition: background 0.4s ease, border-color 0.4s ease;
 }
 
-/* ── Results ── */
-.agent-results {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+/* Shimmer overlay */
+.row-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--bg-faint) 40%,
+    var(--bg-card) 50%,
+    var(--bg-faint) 60%,
+    transparent 100%
+  );
+  background-size: 250% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
 }
 
-.result-card {
+.result-row.searching .row-shimmer {
+  opacity: 1;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent-dim) 40%,
+    var(--accent-subtle) 50%,
+    var(--accent-dim) 60%,
+    transparent 100%
+  );
+  background-size: 250% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+.result-row.populated .row-shimmer {
+  opacity: 0;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -50% 0; }
+}
+
+/* Content (dot + name) */
+.row-content {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
+  padding: 0 8px;
+  height: 100%;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.result-row.populated .row-content {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.result-row.populated {
   background: var(--accent-subtle);
-  border-radius: var(--radius-sm);
-  animation: fadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  border-color: var(--accent-dim);
 }
 
 .result-dot {
