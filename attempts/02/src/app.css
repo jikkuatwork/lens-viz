@@ -1,0 +1,80 @@
+@import "tailwindcss";
+@import "./zippy.css";
+
+:root {
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+  --sar: env(safe-area-inset-right);
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--z-surface);
+  color: var(--z-text);
+  overflow: hidden;
+}
+
+.safe-top {
+  padding-top: var(--sat);
+}
+
+.safe-bottom {
+  padding-bottom: var(--sab);
+}
+
+.safe-left {
+  padding-left: var(--sal);
+}
+
+.safe-right {
+  padding-right: var(--sar);
+}
+
+.card-surface {
+  background: color-mix(in srgb, var(--z-surface-alt) 88%, white 12%);
+  border: 1px solid color-mix(in srgb, var(--z-border) 50%, transparent);
+  border-radius: 14px;
+}
+
+.micro-label {
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--z-text-faint);
+}
+
+.z-scroll {
+  overflow: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.z-scroll:hover {
+  scrollbar-color: color-mix(in srgb, var(--z-text-faint) 55%, transparent) transparent;
+}
+
+.z-scroll-hide {
+  overflow: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.z-scroll-hide::-webkit-scrollbar {
+  display: none;
+}
+
+button,
+a,
+[role='button'] {
+  cursor: pointer;
+}

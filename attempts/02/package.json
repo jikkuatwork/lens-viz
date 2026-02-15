@@ -1,0 +1,22 @@
+{
+  "name": "cx-lens-viz",
+  "private": true,
+  "version": "0.2.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "version": "node scripts/version.js",
+    "build": "node scripts/version.js && vite build && cp -r api dist/ && cp version.json dist/ && cp manifest.json dist/ && cp favicon.png apple-touch-icon.png dist/",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "vite": "^7.2.4",
+    "@vitejs/plugin-vue": "^6.0.4",
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/vite": "^4.0.0"
+  }
+}

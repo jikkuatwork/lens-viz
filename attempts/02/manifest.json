@@ -1,0 +1,12 @@
+{
+  "name": "cx-lens-viz",
+  "version": "0.2.1",
+  "description": "Desktop-first animated visualizer for the CX Lens fund intelligence pipeline.",
+  "spa": false,
+  "display": {
+    "icon": "cpu",
+    "color": "#00eab4",
+    "tags": ["pipeline", "visualization", "ai-agents"],
+    "featured": true
+  }
+}

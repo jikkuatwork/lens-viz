@@ -1,0 +1,120 @@
+@theme {
+  --color-accent-50: var(--z-accent-50);
+  --color-accent-100: var(--z-accent-100);
+  --color-accent-200: var(--z-accent-200);
+  --color-accent-300: var(--z-accent-300);
+  --color-accent-400: var(--z-accent-400);
+  --color-accent-500: var(--z-accent-500);
+  --color-accent-600: var(--z-accent-600);
+  --color-accent-700: var(--z-accent-700);
+
+  --color-surface: var(--z-surface);
+  --color-surface-alt: var(--z-surface-alt);
+  --color-surface-deep: var(--z-surface-deep);
+  --color-border: var(--z-border);
+  --color-border-sub: var(--z-border-sub);
+  --color-text: var(--z-text);
+  --color-text-sub: var(--z-text-sub);
+  --color-text-faint: var(--z-text-faint);
+  --color-on-accent: var(--z-on-accent);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+    'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', Menlo, monospace;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+}
+
+.palette-mint {
+  --z-accent-50: #e8fff8;
+  --z-accent-100: #c5ffef;
+  --z-accent-200: #8affdd;
+  --z-accent-300: #54ffd0;
+  --z-accent-400: #20f4bf;
+  --z-accent-500: #00eab4;
+  --z-accent-600: #00c79a;
+  --z-accent-700: #009577;
+
+  --z-surface: #f5f5f7;
+  --z-surface-alt: #ffffff;
+  --z-surface-deep: #ececf0;
+  --z-border: #d2d2d7;
+  --z-border-sub: #e8e8ed;
+  --z-text: #1c1c1e;
+  --z-text-sub: #48484a;
+  --z-text-faint: #8e8e93;
+  --z-on-accent: #082118;
+}
+
+.dark.palette-mint,
+.palette-mint.dark {
+  --z-accent-50: #052e24;
+  --z-accent-100: #074136;
+  --z-accent-200: #086c57;
+  --z-accent-300: #149f7f;
+  --z-accent-400: #1ecfa5;
+  --z-accent-500: #37e7bb;
+  --z-accent-600: #7ef8d8;
+  --z-accent-700: #b7ffea;
+
+  --z-surface: #0f1013;
+  --z-surface-alt: #1a1c22;
+  --z-surface-deep: #242732;
+  --z-border: #343948;
+  --z-border-sub: #272b37;
+  --z-text: #f5f5f7;
+  --z-text-sub: #c2c3ca;
+  --z-text-faint: #8f93a3;
+  --z-on-accent: #082118;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+button,
+a,
+[role='button'],
+[role='tab'],
+[role='menuitem'] {
+  transition: all 150ms ease;
+}
+
+button:active,
+a:active,
+[role='button']:active,
+[role='tab']:active,
+[role='menuitem']:active {
+  transform: scale(0.98);
+}
+
+@keyframes z-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes z-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.z-fade-in {
+  animation: z-fade-in 0.2s ease-out;
+}
+
+.z-slide-up {
+  animation: z-slide-up 0.28s ease-out;
+}
