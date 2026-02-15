@@ -474,22 +474,28 @@ const indicatorStyle = computed(() => {
 const tabRefs = ref([])
 
 // ── Timer Management ──
-let timers = []
+// Animation timers are separate from the cycle timer.
+// A generation counter lets stale animations bail out cleanly.
+let animationTimers = []
 let cycleTimer = null
+let runGen = 0
 
-function clearTimers() {
-  timers.forEach(t => {
-    if (typeof t === 'number') clearTimeout(t)
-    else if (t?.clear) t.clear()
-  })
-  timers = []
+function clearAnimationTimers() {
+  animationTimers.forEach(id => clearTimeout(id))
+  animationTimers = []
+}
+
+function clearAllTimers() {
+  clearAnimationTimers()
   if (cycleTimer) { clearInterval(cycleTimer); cycleTimer = null }
 }
 
+// Returns true if still current, false if a newer tab run superseded this one.
 function delay(ms) {
+  const gen = runGen
   return new Promise(resolve => {
-    const id = setTimeout(resolve, ms)
-    timers.push(id)
+    const id = setTimeout(() => resolve(runGen === gen), ms)
+    animationTimers.push(id)
   })
 }
 
@@ -521,13 +527,14 @@ function movePointsToClustered() {
     })
   }
   trails.value = newTrails
-  // Fade trails
-  setTimeout(() => {
+  // Fade trails (tracked timers)
+  const t1 = setTimeout(() => {
     trails.value = trails.value.map(t => ({ ...t, opacity: 0.08 }))
   }, 500)
-  setTimeout(() => {
+  const t2 = setTimeout(() => {
     trails.value = []
   }, 1400)
+  animationTimers.push(t1, t2)
 
   for (let i = 0; i < POINT_COUNT; i++) {
     points[i].cx = clusteredPos[i].x
@@ -555,15 +562,15 @@ async function animateClusterTab() {
   await nextTick()
 
   // Phase B: Cluster glows fade in
-  await delay(500)
+  if (!await delay(500)) return
   clusterGlowOpacity.value = 1
 
   // Phase C: Points migrate to clusters
-  await delay(300)
+  if (!await delay(300)) return
   movePointsToClustered()
 
   // Phase D: Cluster labels
-  await delay(1000)
+  if (!await delay(1000)) return
   clusterLabelOpacity.value = 1
 
   // Stats
@@ -579,22 +586,22 @@ async function animateSearchTab() {
   await nextTick()
 
   // Phase B: Search query typewriter
-  await delay(300)
+  if (!await delay(300)) return
   showSearchLabel.value = true
   const fullQuery = '"maritime AI safety"'
   searchLabelText.value = ''
   for (let i = 0; i <= fullQuery.length; i++) {
-    await delay(40)
+    if (!await delay(40)) return
     searchLabelText.value = fullQuery.slice(0, i)
   }
 
   // Phase C: Search point drops in with ripple
-  await delay(100)
+  if (!await delay(100)) return
   showSearchPoint.value = true
   searchPointOpacity.value = 1
 
   // Phase D: Bezier curves to 5 nearest
-  await delay(400)
+  if (!await delay(400)) return
   const conns = []
   for (const idx of searchHighlightIndices) {
     const p = points[idx]
@@ -605,7 +612,7 @@ async function animateSearchTab() {
   bezierConnectionsRaw.value = conns
 
   // Phase E: Highlight 5 nearest, dim others
-  await delay(200)
+  if (!await delay(200)) return
   for (let i = 0; i < POINT_COUNT; i++) {
     if (searchHighlightIndices.has(i)) {
       points[i].fill = 'var(--purple)'
@@ -619,7 +626,7 @@ async function animateSearchTab() {
   }
 
   // Phase F: Results list
-  await delay(600)
+  if (!await delay(600)) return
   showSearchResults.value = true
 
   // Stats
@@ -635,15 +642,15 @@ async function animateFilterTab() {
   await nextTick()
 
   // Phase B: Filter pills animate in
-  await delay(300)
+  if (!await delay(300)) return
   showFilterPills.value = true
   for (let i = 0; i < filterPills.length; i++) {
-    await delay(250)
+    if (!await delay(250)) return
     visibleFilterCount.value = i + 1
   }
 
   // Phase C: Non-matching shrink & dim, matching glow
-  await delay(300)
+  if (!await delay(300)) return
   for (let i = 0; i < POINT_COUNT; i++) {
     if (filterMatchIndices.has(i)) {
       points[i].opacity = 1
@@ -660,7 +667,7 @@ async function animateFilterTab() {
   }
 
   // Phase D: Convex boundary
-  await delay(500)
+  if (!await delay(500)) return
   computeFilterBoundary()
   filterBoundaryOpacity.value = 0.6
 
@@ -689,7 +696,8 @@ function resetOverlays() {
 }
 
 async function runTab(tabIndex) {
-  clearTimers()
+  runGen++
+  clearAnimationTimers()
   resetOverlays()
 
   // Make points visible at current positions first
@@ -750,7 +758,7 @@ function startAnimation() {
 }
 
 function stopAnimation() {
-  clearTimers()
+  clearAllTimers()
   resetOverlays()
 }
 
@@ -760,7 +768,7 @@ watch(() => props.active, (val) => {
 }, { immediate: true })
 
 onUnmounted(() => {
-  clearTimers()
+  clearAllTimers()
 })
 </script>
 

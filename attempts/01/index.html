@@ -12,6 +12,10 @@
     html, body { width: 100%; height: 100%; overflow: hidden; background: #06060B; transition: background 0.4s ease; }
     html.light, html.light body { background: #F5F5F7; }
   </style>
+  <script>
+    // Default to light mode (server prefs applied after auth)
+    document.documentElement.classList.add('light');
+  </script>
 </head>
 <body>
   <div id="app"></div>

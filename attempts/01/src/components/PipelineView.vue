@@ -12,6 +12,10 @@
         <div class="nav-hint">
           <span class="hint-key">&larr;</span> <span class="hint-key">&rarr;</span> navigate
         </div>
+        <button class="control-btn" @click="handleThemeToggle" :title="lightMode ? 'Dark mode' : 'Light mode'">
+          <Sun v-if="lightMode" :size="15" stroke-width="1.5" />
+          <Moon v-else :size="15" stroke-width="1.5" />
+        </button>
         <button class="control-btn" @click="handleReset" title="Reset">
           <RotateCcw :size="15" stroke-width="1.5" />
         </button>
