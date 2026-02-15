@@ -142,16 +142,14 @@ const nodes = computed(() => {
 }
 
 /* ── Center Hub ── */
+/* Zero-dimension anchor at exact diagram center.
+   All children position themselves relative to this point,
+   so circle, glow, ring, and SVG branch origin are coincident. */
 .center-hub {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
   z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
 }
 
 .center-glow {
@@ -162,7 +160,9 @@ const nodes = computed(() => {
   background: var(--accent);
   opacity: 0;
   filter: blur(24px);
-  top: -19px;
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
 }
 
 .active .center-glow {
@@ -180,7 +180,9 @@ const nodes = computed(() => {
   border-radius: 50%;
   border: 1px solid var(--accent-dim);
   opacity: 0;
-  top: -10px;
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
 }
 
 .active .center-ring {
@@ -192,6 +194,7 @@ const nodes = computed(() => {
 }
 
 .center-circle {
+  position: absolute;
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -201,8 +204,10 @@ const nodes = computed(() => {
   align-items: center;
   justify-content: center;
   box-shadow: 0 0 24px var(--accent-glow);
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%) scale(0.5);
   opacity: 0;
-  transform: scale(0.5);
 }
 
 .active .center-circle {
@@ -210,16 +215,21 @@ const nodes = computed(() => {
 }
 
 @keyframes centerIn {
-  to { opacity: 1; transform: scale(1); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
 .center-label {
+  position: absolute;
+  top: 34px;
+  left: 0;
+  transform: translateX(-50%);
   font-size: 10px;
   font-weight: 500;
   color: var(--text-secondary);
   text-align: center;
   line-height: 1.3;
   letter-spacing: 0.3px;
+  white-space: nowrap;
   opacity: 0;
 }
 
