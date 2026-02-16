@@ -22,7 +22,8 @@
         <!-- User Avatar Dropdown -->
         <div class="user-menu" ref="userMenuRef">
           <button class="avatar-btn" @click="toggleUserMenu" title="Account">
-            <span class="avatar-initials">{{ userInitials }}</span>
+            <img v-if="user?.picture" :src="user.picture" :alt="userName" class="avatar-img" referrerpolicy="no-referrer" />
+            <span v-else class="avatar-initials">{{ userInitials }}</span>
           </button>
           <Transition name="dropdown">
             <div v-if="userMenuOpen" class="dropdown-menu">
@@ -449,6 +450,13 @@ onUnmounted(() => {
   letter-spacing: 0.3px;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .avatar-btn:hover {
