@@ -27,13 +27,19 @@
       <div class="loading-spinner"></div>
     </div>
 
-    <!-- Auth gate -->
+    <!-- Auth gate (not signed in, no invite access) -->
     <AuthModal
-      v-else-if="!user"
+      v-else-if="!user && !hasInviteAccess"
       @login="handleLogin"
     />
 
-    <!-- Main app -->
+    <!-- Access gate (signed in, but no role) -->
+    <AccessGate
+      v-else-if="user && needsInvite && !hasInviteAccess"
+      @logout="handleLogout"
+    />
+
+    <!-- Main app (has role or has invite access) -->
     <router-view v-else />
   </div>
 </template>
@@ -41,10 +47,11 @@
 <script setup>
 import { ref, provide, watch, onMounted, onUnmounted } from 'vue'
 import AuthModal from './components/AuthModal.vue'
+import AccessGate from './components/AccessGate.vue'
 import { useAuth } from './composables/useAuth.js'
 import { useAnalytics } from './composables/useAnalytics.js'
 
-const { user, loading, login, logout } = useAuth()
+const { user, loading, login, logout, appRole, needsInvite, hasInviteAccess, accessRequestStatus, redeemInvite, requestAccess } = useAuth()
 const { track } = useAnalytics()
 
 // ── Mobile detection ──
@@ -111,10 +118,19 @@ provide('toggleTheme', toggleTheme)
 provide('user', user)
 provide('logout', logout)
 provide('track', track)
+provide('appRole', appRole)
+provide('redeemInvite', redeemInvite)
+provide('requestAccess', requestAccess)
+provide('accessRequestStatus', accessRequestStatus)
 
 function handleLogin() {
   track('sign_in')
   login()
+}
+
+function handleLogout() {
+  track('sign_out')
+  logout()
 }
 
 onMounted(() => {

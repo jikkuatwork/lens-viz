@@ -1,31 +1,28 @@
-import { ref, readonly } from 'vue'
+import { ref, readonly, computed } from 'vue'
 
 const user = ref(null)
 const loading = ref(true)
+const hasInviteAccess = ref(!!localStorage.getItem('lens_invite_access'))
 
-// Match fazt-sdk fetch defaults
+// Match holm-sdk fetch defaults
 const fetchOpts = { credentials: 'include', headers: { 'Accept': 'application/json' } }
 
 export function useAuth() {
   async function checkSession() {
     loading.value = true
-    for (let i = 0; i < 3; i++) {
-      try {
-        const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 3000)
-        const res = await fetch('/api/me', { ...fetchOpts, signal: controller.signal })
-        clearTimeout(timeout)
-        if (res.ok) {
-          const data = await res.json()
-          if (data.user) {
-            user.value = data.user
-          }
-          break
+    try {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 5000)
+      const res = await fetch('/api/me', { ...fetchOpts, signal: controller.signal })
+      clearTimeout(timeout)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.user) {
+          user.value = data.user
         }
-        await new Promise(r => setTimeout(r, 500))
-      } catch {
-        if (i === 2) user.value = null
       }
+    } catch {
+      user.value = null
     }
     loading.value = false
   }
@@ -46,7 +43,55 @@ export function useAuth() {
       // Ignore network errors
     }
     user.value = null
+    localStorage.removeItem('lens_invite_access')
+    hasInviteAccess.value = false
     window.location.href = '/'
+  }
+
+  const appRole = computed(() => user.value?.appRole || null)
+  const isAppAdmin = computed(() => appRole.value === 'app-admin')
+  const needsInvite = computed(() => !!user.value && !appRole.value)
+  const accessRequestStatus = computed(() => user.value?.accessRequestStatus || null)
+
+  // Redeem invite code (public — works without auth)
+  async function redeemInvite(code) {
+    try {
+      const res = await fetch('/api/invite/redeem', {
+        ...fetchOpts,
+        method: 'POST',
+        headers: { ...fetchOpts.headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      })
+      const data = await res.json()
+      if (!res.ok) return { success: false, error: data.error || 'Invalid code' }
+      // Store anonymous access in localStorage
+      localStorage.setItem('lens_invite_access', data.code || code)
+      hasInviteAccess.value = true
+      // If user is signed in, re-fetch to get updated appRole
+      if (user.value) await checkSession()
+      return { success: true }
+    } catch {
+      return { success: false, error: 'Network error. Please try again.' }
+    }
+  }
+
+  // Request access (authenticated users only)
+  async function requestAccess() {
+    try {
+      const res = await fetch('/api/access/request', {
+        ...fetchOpts,
+        method: 'POST',
+        headers: { ...fetchOpts.headers, 'Content-Type': 'application/json' },
+        body: '{}'
+      })
+      const data = await res.json()
+      if (!res.ok) return { success: false, error: data.error || 'Request failed' }
+      // Re-fetch user to get updated accessRequestStatus
+      await checkSession()
+      return { success: true, status: data.status }
+    } catch {
+      return { success: false, error: 'Network error. Please try again.' }
+    }
   }
 
   checkSession()
@@ -55,7 +100,14 @@ export function useAuth() {
     user: readonly(user),
     loading: readonly(loading),
     isLoggedIn: () => !!user.value,
+    appRole,
+    isAppAdmin,
+    needsInvite,
+    hasInviteAccess: readonly(hasInviteAccess),
+    accessRequestStatus,
     login,
     logout,
+    redeemInvite,
+    requestAccess,
   }
 }

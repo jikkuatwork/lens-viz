@@ -19,6 +19,8 @@ async function postEvent(event) {
 
 export function useAnalytics() {
   function track(type, metadata = {}) {
+    const inviteCode = localStorage.getItem('lens_invite_access')
+    if (inviteCode) metadata.inviteCode = inviteCode
     const event = {
       type,
       metadata,

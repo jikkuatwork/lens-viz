@@ -36,6 +36,10 @@
                 <Moon v-else :size="14" stroke-width="1.5" />
                 <span>{{ lightMode ? 'Dark mode' : 'Light mode' }}</span>
               </button>
+              <button v-if="isAppAdmin" class="dropdown-item" @click="goToAdmin">
+                <Settings :size="14" stroke-width="1.5" />
+                <span>Admin</span>
+              </button>
               <button class="dropdown-item" @click="handleSignOut">
                 <LogOut :size="14" stroke-width="1.5" />
                 <span>Sign out</span>
@@ -93,7 +97,7 @@
 <script setup>
 import { ref, inject, computed, watch, onMounted, onUnmounted, shallowRef, markRaw } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { RotateCcw, Sun, Moon, LogOut } from 'lucide-vue-next'
+import { RotateCcw, Sun, Moon, LogOut, Settings } from 'lucide-vue-next'
 import ProgressTracker from './ProgressTracker.vue'
 import FooterStats from './FooterStats.vue'
 import Slide01 from '../slides/01_DataIngestion.vue'
@@ -109,6 +113,9 @@ const toggleTheme = inject('toggleTheme')
 const user = inject('user')
 const logout = inject('logout')
 const track = inject('track')
+const appRole = inject('appRole')
+
+const isAppAdmin = computed(() => appRole.value === 'app-admin')
 
 const stages = [
   {
@@ -163,6 +170,7 @@ const completedStages = ref(new Set())
 const playing = ref(false)
 const stageActive = ref(false)
 const transitioning = ref(false)
+const stageEnteredAt = ref(Date.now())
 
 // User menu
 const userMenuOpen = ref(false)
@@ -189,6 +197,11 @@ function handleClickOutside(e) {
 function handleThemeToggle() {
   toggleTheme()
   userMenuOpen.value = false
+}
+
+function goToAdmin() {
+  userMenuOpen.value = false
+  router.push('/admin')
 }
 
 function handleSignOut() {
@@ -219,12 +232,14 @@ function activateStage() {
 
 function advanceStage() {
   if (currentStage.value < stages.length - 1) {
+    const durationMs = Date.now() - stageEnteredAt.value
+    const from = currentStage.value
     completedStages.value.add(currentStage.value)
     transitioning.value = true
     const next = currentStage.value + 1
     navigateTo(next)
     activateStage()
-    track('stage_navigate', { stage: next, method: 'autoplay' })
+    track('stage_navigate', { from, stage: next, method: 'autoplay', durationMs })
     setTimeout(() => { transitioning.value = false }, 600)
     scheduleNext()
   } else {
@@ -274,6 +289,8 @@ function handleReset() {
 
 function goToStage(index) {
   if (index === currentStage.value) return
+  const durationMs = Date.now() - stageEnteredAt.value
+  const from = currentStage.value
   playing.value = false
   clearTimeout(autoTimer)
   if (index < currentStage.value) {
@@ -282,7 +299,7 @@ function goToStage(index) {
   transitioning.value = true
   navigateTo(index)
   activateStage()
-  track('stage_navigate', { stage: index, method: 'click' })
+  track('stage_navigate', { from, stage: index, method: 'click', durationMs })
   setTimeout(() => { transitioning.value = false }, 600)
 }
 
@@ -293,22 +310,27 @@ function handleKeydown(e) {
   } else if (e.key === 'ArrowRight') {
     e.preventDefault()
     if (currentStage.value < stages.length - 1) {
+      const durationMs = Date.now() - stageEnteredAt.value
+      const from = currentStage.value
       const next = currentStage.value + 1
       goToStage(next)
-      track('stage_navigate', { stage: next, method: 'keyboard' })
+      track('stage_navigate', { from, stage: next, method: 'keyboard', durationMs })
     }
   } else if (e.key === 'ArrowLeft') {
     e.preventDefault()
     if (currentStage.value > 0) {
+      const durationMs = Date.now() - stageEnteredAt.value
+      const from = currentStage.value
       const prev = currentStage.value - 1
       goToStage(prev)
-      track('stage_navigate', { stage: prev, method: 'keyboard' })
+      track('stage_navigate', { from, stage: prev, method: 'keyboard', durationMs })
     }
   }
 }
 
 // Re-activate stage animation when route changes
 watch(currentStage, () => {
+  stageEnteredAt.value = Date.now()
   activateStage()
 })
 
@@ -320,6 +342,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  const durationMs = Date.now() - stageEnteredAt.value
+  track('stage_exit', { stage: currentStage.value, durationMs })
   clearTimeout(autoTimer)
   clearTimeout(activateTimer)
   document.removeEventListener('click', handleClickOutside)

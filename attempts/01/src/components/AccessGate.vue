@@ -1,34 +1,47 @@
 <template>
   <div class="auth-page">
-    <!-- Floating ambient orbs -->
     <div class="auth-orb orb-1" />
     <div class="auth-orb orb-2" />
     <div class="auth-orb orb-3" />
 
-    <!-- Center card -->
     <div class="auth-card">
-      <!-- Logo -->
       <div class="auth-logo">
         <img src="/assets/logo.svg" alt="Lens" class="auth-logo-img" />
       </div>
 
-      <!-- Text -->
-      <h1 class="auth-title">Lens</h1>
-      <p class="auth-subtitle">AI Research Pipeline</p>
+      <h1 class="auth-title">Access Required</h1>
+      <p class="auth-subtitle">Signed in as {{ userEmail }}</p>
 
-      <!-- Divider -->
       <div class="auth-divider" />
 
-      <!-- Sign in button -->
-      <button class="auth-btn" @click="$emit('login')">
-        <svg class="google-icon" viewBox="0 0 24 24" width="18" height="18">
-          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-        </svg>
-        <span>Sign in with Google</span>
-      </button>
+      <!-- Request Access section -->
+      <div v-if="!requestStatus" class="action-section">
+        <button class="request-btn" @click="handleRequest" :disabled="requesting">
+          <ShieldCheck :size="16" stroke-width="1.5" />
+          <span>{{ requesting ? 'Requesting...' : 'Request Access' }}</span>
+        </button>
+        <Transition name="msg">
+          <p v-if="requestError" class="error-msg">{{ requestError }}</p>
+        </Transition>
+      </div>
+
+      <!-- Pending state -->
+      <div v-else-if="requestStatus === 'pending'" class="status-section">
+        <div class="status-badge status-pending">
+          <Clock :size="14" stroke-width="1.5" />
+          <span>Access requested — awaiting review</span>
+        </div>
+        <p class="status-hint">An admin will review your request.</p>
+      </div>
+
+      <!-- Denied state -->
+      <div v-else-if="requestStatus === 'denied'" class="status-section">
+        <div class="status-badge status-denied">
+          <ShieldX :size="14" stroke-width="1.5" />
+          <span>Access request denied</span>
+        </div>
+        <p class="status-hint">Contact an administrator for access.</p>
+      </div>
 
       <!-- Invite code section -->
       <div class="section-label">
@@ -57,44 +70,67 @@
             :disabled="code.length < 8 || redeeming"
           >
             <Ticket :size="14" stroke-width="1.5" />
-            <span>{{ redeeming ? 'Checking...' : 'Enter' }}</span>
+            <span>{{ redeeming ? 'Checking...' : 'Redeem' }}</span>
           </button>
         </div>
         <Transition name="msg">
-          <p v-if="error" class="invite-error">{{ error }}</p>
+          <p v-if="codeError" class="error-msg">{{ codeError }}</p>
         </Transition>
       </form>
 
-      <!-- Footer hint -->
-      <p class="auth-footer">Sign in to request access</p>
+      <button class="sign-out-link" @click="$emit('logout')">
+        Sign out
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, inject } from 'vue'
-import { Ticket } from 'lucide-vue-next'
+import { ref, computed, inject } from 'vue'
+import { Ticket, ShieldCheck, Clock, ShieldX } from 'lucide-vue-next'
 
-defineEmits(['login'])
+defineEmits(['logout'])
 
+const user = inject('user')
 const redeemInvite = inject('redeemInvite')
+const requestAccessFn = inject('requestAccess')
+const accessRequestStatus = inject('accessRequestStatus')
 
+const userEmail = computed(() => user.value?.email || '')
+const requestStatus = computed(() => accessRequestStatus.value)
+
+// Request access
+const requesting = ref(false)
+const requestError = ref('')
+
+async function handleRequest() {
+  if (requesting.value) return
+  requesting.value = true
+  requestError.value = ''
+  const result = await requestAccessFn()
+  if (!result.success) {
+    requestError.value = result.error
+  }
+  requesting.value = false
+}
+
+// Invite code
 const code = ref('')
-const error = ref('')
+const codeError = ref('')
 const redeeming = ref(false)
 
 function handleCodeInput() {
   code.value = code.value.toUpperCase().replace(/[^A-Z0-9]/g, '')
-  error.value = ''
+  codeError.value = ''
 }
 
 async function handleRedeem() {
   if (code.value.length < 8 || redeeming.value) return
   redeeming.value = true
-  error.value = ''
+  codeError.value = ''
   const result = await redeemInvite(code.value)
   if (!result.success) {
-    error.value = result.error
+    codeError.value = result.error
   }
   redeeming.value = false
 }
@@ -112,7 +148,6 @@ async function handleRedeem() {
   overflow: hidden;
 }
 
-/* ── Ambient orbs ── */
 .auth-orb {
   position: absolute;
   border-radius: 50%;
@@ -122,32 +157,20 @@ async function handleRedeem() {
 }
 
 .orb-1 {
-  width: 400px;
-  height: 400px;
-  background: var(--accent);
-  opacity: 0.06;
-  top: -10%;
-  left: -5%;
-  animation-delay: 0s;
+  width: 400px; height: 400px;
+  background: var(--accent); opacity: 0.06;
+  top: -10%; left: -5%;
 }
-
 .orb-2 {
-  width: 300px;
-  height: 300px;
-  background: var(--purple);
-  opacity: 0.05;
-  bottom: -5%;
-  right: -5%;
+  width: 300px; height: 300px;
+  background: var(--purple); opacity: 0.05;
+  bottom: -5%; right: -5%;
   animation-delay: -4s;
 }
-
 .orb-3 {
-  width: 250px;
-  height: 250px;
-  background: var(--blue);
-  opacity: 0.04;
-  top: 50%;
-  right: 20%;
+  width: 250px; height: 250px;
+  background: var(--blue); opacity: 0.04;
+  top: 50%; right: 20%;
   animation-delay: -8s;
 }
 
@@ -157,7 +180,6 @@ async function handleRedeem() {
   100% { transform: translate(-20px, 30px) scale(0.95); }
 }
 
-/* ── Card ── */
 .auth-card {
   position: relative;
   z-index: 1;
@@ -179,16 +201,11 @@ async function handleRedeem() {
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ── Logo ── */
 .auth-logo {
   margin-bottom: 20px;
   animation: logoIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
 }
-
-.auth-logo-img {
-  width: 52px;
-  height: 52px;
-}
+.auth-logo-img { width: 52px; height: 52px; }
 
 @keyframes logoIn {
   0% { opacity: 0; transform: scale(0.7); }
@@ -196,7 +213,6 @@ async function handleRedeem() {
   100% { opacity: 1; transform: scale(1); }
 }
 
-/* ── Typography ── */
 .auth-title {
   font-size: 28px;
   font-weight: 700;
@@ -209,14 +225,12 @@ async function handleRedeem() {
 
 .auth-subtitle {
   font-size: 13px;
-  font-weight: 400;
   color: var(--text-secondary);
   letter-spacing: 0.5px;
   margin: 0;
   animation: fadeIn 0.5s ease 0.35s both;
 }
 
-/* ── Divider ── */
 .auth-divider {
   width: 40px;
   height: 1px;
@@ -225,8 +239,17 @@ async function handleRedeem() {
   animation: fadeIn 0.5s ease 0.4s both;
 }
 
-/* ── Sign-in button ── */
-.auth-btn {
+/* ── Request Access ── */
+.action-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  animation: fadeIn 0.5s ease 0.5s both;
+}
+
+.request-btn {
   width: 100%;
   display: flex;
   align-items: center;
@@ -239,25 +262,62 @@ async function handleRedeem() {
   font-family: var(--font-sans);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  color: var(--text-primary);
-  animation: fadeIn 0.5s ease 0.5s both;
+  border: 1px solid var(--border-accent);
+  background: var(--accent-dim);
+  color: var(--accent);
 }
 
-.auth-btn:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--border-accent);
+.request-btn:hover:not(:disabled) {
+  background: var(--accent-subtle);
   box-shadow: 0 0 24px var(--accent-glow);
   transform: translateY(-1px);
 }
 
-.auth-btn:active {
+.request-btn:active:not(:disabled) {
   transform: translateY(0) scale(0.99);
 }
 
-.google-icon {
-  flex-shrink: 0;
+.request-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Status ── */
+.status-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  animation: fadeIn 0.5s ease 0.5s both;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.status-pending {
+  background: var(--orange-dim);
+  color: var(--orange);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+.status-denied {
+  background: var(--rose-dim);
+  color: var(--rose);
+  border: 1px solid rgba(244, 63, 94, 0.15);
+}
+
+.status-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin: 0;
 }
 
 /* ── Section label ── */
@@ -324,9 +384,7 @@ async function handleRedeem() {
   box-shadow: 0 0 16px var(--accent-glow);
 }
 
-.invite-input:disabled {
-  opacity: 0.6;
-}
+.invite-input:disabled { opacity: 0.6; }
 
 .invite-btn {
   display: flex;
@@ -355,7 +413,7 @@ async function handleRedeem() {
   cursor: not-allowed;
 }
 
-.invite-error {
+.error-msg {
   font-size: 12px;
   color: var(--rose);
   margin: 0;
@@ -367,13 +425,21 @@ async function handleRedeem() {
 .msg-enter-from { opacity: 0; transform: translateY(-4px); }
 .msg-leave-to { opacity: 0; }
 
-/* ── Footer ── */
-.auth-footer {
-  margin: 20px 0 0;
-  font-size: 11px;
+/* ── Sign out ── */
+.sign-out-link {
+  margin-top: 20px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
   color: var(--text-tertiary);
-  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition: color 0.2s ease;
   animation: fadeIn 0.5s ease 0.7s both;
+}
+
+.sign-out-link:hover {
+  color: var(--accent);
 }
 
 @keyframes fadeIn {
