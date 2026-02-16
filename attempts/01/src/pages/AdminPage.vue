@@ -57,10 +57,33 @@
             placeholder="Label (e.g. Client name)"
             maxlength="50"
           />
-          <button class="generate-btn" @click="generateCode" :disabled="generating">
-            <Plus :size="14" stroke-width="2" />
-            <span>{{ generating ? 'Generating...' : 'Generate Code' }}</span>
-          </button>
+          <div class="split-btn" :class="{ open: dropdownOpen }">
+            <button class="split-action" @click="generateCode" :disabled="generating">
+              <Plus :size="14" stroke-width="2" />
+              <span>{{ generating ? 'Generating...' : 'Generate ' + (inviteOneTime ? 'One-time' : 'Multi-use') }}</span>
+            </button>
+            <button class="split-toggle" @click.stop="dropdownOpen = !dropdownOpen" :disabled="generating">
+              <ChevronDown :size="14" stroke-width="2" />
+            </button>
+            <div v-if="dropdownOpen" class="split-dropdown">
+              <button
+                class="split-option"
+                :class="{ selected: inviteOneTime }"
+                @click="inviteOneTime = true; dropdownOpen = false"
+              >
+                <span class="option-label">One-time</span>
+                <span class="option-desc">Single use, then expires</span>
+              </button>
+              <button
+                class="split-option"
+                :class="{ selected: !inviteOneTime }"
+                @click="inviteOneTime = false; dropdownOpen = false"
+              >
+                <span class="option-label">Multi-use</span>
+                <span class="option-desc">Unlimited redemptions</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -76,6 +99,7 @@
             <tr>
               <th>Code</th>
               <th>Label</th>
+              <th>Type</th>
               <th>Status</th>
               <th>Created</th>
               <th>Used By</th>
@@ -91,15 +115,23 @@
               </td>
               <td class="label-cell">{{ inv.label || '—' }}</td>
               <td>
+                <span class="type-badge" :class="inv.oneTime !== false ? 'type-onetime' : 'type-multi'">
+                  {{ inv.oneTime !== false ? 'One-time' : 'Multi-use' }}
+                </span>
+              </td>
+              <td>
                 <span class="status-badge" :class="inviteStatus(inv).cls">
                   {{ inviteStatus(inv).label }}
                 </span>
               </td>
               <td class="date-cell">{{ formatDate(inv.createdAt) }}</td>
-              <td class="email-cell">{{ inv.usedBy || '—' }}</td>
+              <td class="email-cell">
+                <template v-if="inv.oneTime !== false">{{ inv.usedBy || '—' }}</template>
+                <template v-else>{{ (inv.useCount || 0) }} uses</template>
+              </td>
               <td>
                 <button
-                  v-if="!inv.usedBy && !inv.revoked"
+                  v-if="!inv.revoked && (inv.oneTime === false || !inv.usedBy)"
                   class="revoke-btn"
                   @click="revokeCode(inv.id)"
                 >
@@ -257,9 +289,9 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, onMounted, watch } from 'vue'
+import { ref, computed, inject, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, Ticket, BarChart3, Plus, UserCheck } from 'lucide-vue-next'
+import { ArrowLeft, Ticket, BarChart3, Plus, UserCheck, ChevronDown } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -284,6 +316,8 @@ function goTab(tab) {
 }
 const invites = ref([])
 const inviteLabel = ref('')
+const inviteOneTime = ref(false)
+const dropdownOpen = ref(false)
 const generating = ref(false)
 const showCopied = ref(false)
 
@@ -386,7 +420,7 @@ function requestStatusCls(status) {
 
 function inviteStatus(inv) {
   if (inv.revoked) return { label: 'Revoked', cls: 'status-revoked' }
-  if (inv.usedBy) return { label: 'Used', cls: 'status-used' }
+  if (inv.oneTime !== false && inv.usedBy) return { label: 'Used', cls: 'status-used' }
   return { label: 'Active', cls: 'status-active' }
 }
 
@@ -447,7 +481,7 @@ async function generateCode() {
       ...fetchOpts,
       method: 'POST',
       headers: { ...fetchOpts.headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ count: 1, label: inviteLabel.value })
+      body: JSON.stringify({ count: 1, label: inviteLabel.value, oneTime: inviteOneTime.value })
     })
     if (res.ok) {
       inviteLabel.value = ''
@@ -526,7 +560,10 @@ async function loadAnalytics() {
   analyticsLoading.value = false
 }
 
+function closeDropdown() { dropdownOpen.value = false }
+
 onMounted(() => {
+  document.addEventListener('click', closeDropdown)
   if (appRole.value !== 'app-admin') {
     router.replace('/')
     return
@@ -534,6 +571,10 @@ onMounted(() => {
   loadInvites()
   loadRequests()
   if (activeTab.value === 'analytics') loadAnalytics()
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeDropdown)
 })
 </script>
 
@@ -701,6 +742,136 @@ onMounted(() => {
 .label-cell {
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+/* ── Split Button ── */
+.split-btn {
+  position: relative;
+  display: flex;
+  border-radius: var(--radius-sm);
+  overflow: visible;
+}
+
+.split-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-accent);
+  border-right: none;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.split-action:hover:not(:disabled) {
+  background: var(--accent-subtle);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.split-action:disabled,
+.split-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.split-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  border: 1px solid var(--border-accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.split-toggle:hover:not(:disabled) {
+  background: var(--accent-subtle);
+}
+
+.split-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 200px;
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.split-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.split-option:hover {
+  background: var(--accent-dim);
+}
+
+.split-option.selected {
+  background: var(--accent-dim);
+}
+
+.split-option + .split-option {
+  border-top: 1px solid var(--border-faint);
+}
+
+.option-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.split-option.selected .option-label {
+  color: var(--accent);
+}
+
+.option-desc {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* ── Type Badge ── */
+.type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.type-onetime {
+  color: var(--text-tertiary);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+
+.type-multi {
+  color: var(--blue);
+  background: var(--blue-dim);
+  border: 1px solid rgba(59, 130, 246, 0.15);
 }
 
 .generate-btn {

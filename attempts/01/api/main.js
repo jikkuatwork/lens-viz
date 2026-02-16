@@ -140,23 +140,28 @@ else if (request.path === '/api/invite/redeem' && request.method === 'POST') {
   else {
     var invite = ds.findOne('invite_codes', { code: code })
     if (!invite) { respond(400, { error: 'Invalid invite code' }) }
-    else if (invite.usedBy) { respond(400, { error: 'Code already used' }) }
+    else if (invite.oneTime !== false && invite.usedBy) { respond(400, { error: 'Code already used' }) }
     else if (invite.revoked) { respond(400, { error: 'Code has been revoked' }) }
     else {
       var usedBy = user ? user.email : 'anonymous'
-      ds.update('invite_codes', { id: invite.id }, {
-        usedBy: usedBy,
-        usedAt: Date.now()
-      })
+      var updates = { useCount: (invite.useCount || 0) + 1 }
+      if (invite.oneTime !== false) {
+        updates.usedBy = usedBy
+        updates.usedAt = Date.now()
+      }
+      ds.update('invite_codes', { id: invite.id }, updates)
       // If authenticated, also whitelist the email
       if (user) {
-        ds.insert('allowed_users', {
-          id: genId(),
-          email: user.email.toLowerCase(),
-          inviteCode: code,
-          addedAt: Date.now(),
-          addedBy: 'invite'
-        })
+        var alreadyAllowed = ds.findOne('allowed_users', { email: user.email.toLowerCase() })
+        if (!alreadyAllowed) {
+          ds.insert('allowed_users', {
+            id: genId(),
+            email: user.email.toLowerCase(),
+            inviteCode: code,
+            addedAt: Date.now(),
+            addedBy: 'invite'
+          })
+        }
       }
       respond({ success: true, code: invite.code })
     }
@@ -264,16 +269,19 @@ else if (request.path === '/api/admin/invites' && request.method === 'POST') {
   if (requireAppAdmin(user)) {
     var count = Math.min(Math.max(parseInt(request.body.count) || 1, 1), 20)
     var label = (request.body.label || '').trim()
+    var oneTime = request.body.oneTime !== false
     var created = []
     for (var i = 0; i < count; i++) {
       var invite = {
         id: genId(),
         code: generateCode(),
         label: label || null,
+        oneTime: oneTime,
         createdBy: user.email,
         createdAt: Date.now(),
         usedBy: null,
         usedAt: null,
+        useCount: 0,
         revoked: false,
         revokedAt: null
       }
